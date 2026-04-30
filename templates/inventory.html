@@ -125,17 +125,29 @@ function updateInventory() {
       tbody.innerHTML = data.map(row => {
         let pillClass, pillText;
         if (row.units === 0) {
-          pillClass = 'unit-zero';
-          pillText  = 'Critical — 0 units';
-          hasCritical = true;
-          criticalGroups.push(row.blood_group);
+          pillClass = 'unit-zero'; pillText = 'Critical — 0 units';
+          hasCritical = true; criticalGroups.push(row.blood_group);
         } else if (row.units <= 5) {
-          pillClass = 'unit-low';
-          pillText  = `Low — ${row.units} units`;
+          pillClass = 'unit-low'; pillText = `Low — ${row.units} units`;
         } else {
-          pillClass = 'unit-ok';
-          pillText  = 'Available';
+          pillClass = 'unit-ok'; pillText = 'Available';
         }
+        
+        let reserveCol = '';
+        {% if current_user.is_authenticated %}
+        if (row.units > 0) {
+          reserveCol = `<td>
+            <form method="POST" action="/cart/add" class="d-flex gap-1">
+              <input type="hidden" name="blood_group" value="${row.blood_group}">
+              <input type="number" name="units" value="1" min="1" max="${row.units}" class="form-control form-control-sm" style="width:60px;">
+              <button type="submit" class="btn btn-sm btn-danger"><i class="bi bi-cart-plus"></i></button>
+            </form>
+          </td>`;
+        } else {
+          reserveCol = '<td><span class="badge bg-secondary">Unavailable</span></td>';
+        }
+        {% endif %}
+
         return `
           <tr>
             <td style="padding:12px 16px;font-weight:500;">${row.bank_name}</td>
@@ -143,6 +155,7 @@ function updateInventory() {
             <td>${row.units}</td>
             <td><span class="unit-pill ${pillClass}">${pillText}</span></td>
             <td style="font-size:12px;color:#aaa;">${row.last_updated}</td>
+            ${reserveCol}
           </tr>`;
       }).join('');
 
