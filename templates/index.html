@@ -11,20 +11,20 @@
     <h1 class="mb-3">BloodConnect <span style="font-weight:300">Visakhapatnam</span></h1>
     <p class="lead mb-4">Connecting donors, seekers, and blood banks to save lives – faster than ever.</p>
     <div class="d-flex justify-content-center gap-3 flex-wrap">
-      {% if not session.get('user_id') %}
+      {% if not current_user.is_authenticated %}
       <a href="{{ url_for('register') }}" class="btn btn-light btn-lg fw-bold text-danger px-4">
-        <i class="bi bi-person-plus"></i> Join as Donor
+        <i class="bi bi-person-plus"></i> {{ t.btn_donate }}
       </a>
       <a href="{{ url_for('register') }}" class="btn btn-outline-light btn-lg px-4">
-        <i class="bi bi-search-heart"></i> Request Blood
+        <i class="bi bi-search-heart"></i> {{ t.btn_request }}
       </a>
       {% else %}
       <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg fw-bold text-danger px-4">
-        <i class="bi bi-speedometer2"></i> Go to Dashboard
+        <i class="bi bi-speedometer2"></i> Dashboard
       </a>
       {% endif %}
       <a href="{{ url_for('public_inventory') }}" class="btn btn-outline-light btn-lg px-4">
-        <i class="bi bi-droplet-half"></i> Check Availability
+        <i class="bi bi-droplet-half"></i> {{ t.nav_inventory }}
       </a>
     </div>
   </div>

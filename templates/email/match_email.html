@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { margin:0; padding:0; background:#f4f4f4; font-family:Arial,sans-serif; }
+  .wrapper { max-width:580px; margin:30px auto; background:#fff;
+             border-radius:12px; overflow:hidden;
+             box-shadow:0 4px 20px rgba(0,0,0,0.08); }
+  .header { background:#C0392B; padding:28px 32px; text-align:center; }
+  .header h1 { color:#fff; margin:0; font-size:22px; letter-spacing:1px; }
+  .header p  { color:rgba(255,255,255,0.85); margin:6px 0 0; font-size:14px; }
+  .body { padding:32px; }
+  .greeting { font-size:17px; color:#222; margin-bottom:16px; }
+  .info-box { background:#fdf2f2; border-left:4px solid #C0392B;
+              border-radius:6px; padding:16px 20px; margin:20px 0; }
+  .info-box table { width:100%; border-collapse:collapse; }
+  .info-box td { padding:5px 0; font-size:14px; color:#444; }
+  .info-box td:first-child { color:#888; width:110px; }
+  .info-box td strong { color:#222; }
+  .urgency-critical { background:#e74c3c; color:#fff; padding:3px 12px;
+                      border-radius:20px; font-size:12px; font-weight:700; }
+  .urgency-medium   { background:#e67e22; color:#fff; padding:3px 12px;
+                      border-radius:20px; font-size:12px; font-weight:700; }
+  .urgency-low      { background:#27ae60; color:#fff; padding:3px 12px;
+                      border-radius:20px; font-size:12px; font-weight:700; }
+  .btn-row { text-align:center; margin:28px 0 8px; }
+  .btn-yes { display:inline-block; background:#27ae60; color:#fff;
+             text-decoration:none; padding:14px 36px; border-radius:8px;
+             font-size:16px; font-weight:700; margin-right:12px; }
+  .btn-no  { display:inline-block; background:#fff; color:#C0392B;
+             text-decoration:none; padding:13px 36px; border-radius:8px;
+             font-size:16px; font-weight:700;
+             border:2px solid #C0392B; }
+  .expire  { text-align:center; font-size:12px; color:#aaa; margin-top:8px; }
+  .footer  { background:#f9f9f9; padding:20px 32px; text-align:center;
+             font-size:12px; color:#bbb; border-top:1px solid #eee; }
+</style>
+</head>
+<body>
+<div class="wrapper">
+  <div class="header">
+    <h1>🩸 Blood Donation Request</h1>
+    <p>Your help can save a life today</p>
+  </div>
+  <div class="body">
+    <p class="greeting">Dear <strong>{{ donor_name }}</strong>,</p>
+    <p style="font-size:14px;color:#555;line-height:1.7;">
+      A patient urgently needs blood that matches your type.
+      You have been identified as a compatible donor nearby.
+      Please respond using the buttons below.
+    </p>
+
+    <div class="info-box">
+      <table>
+        <tr>
+          <td>Blood Group</td>
+          <td><strong style="font-size:18px;color:#C0392B;">{{ blood_group }}</strong></td>
+        </tr>
+        <tr>
+          <td>Units Needed</td>
+          <td><strong>{{ units }} unit(s)</strong></td>
+        </tr>
+        <tr>
+          <td>Hospital</td>
+          <td><strong>{{ hospital }}</strong></td>
+        </tr>
+        <tr>
+          <td>Urgency</td>
+          <td>
+            <span class="urgency-{{ urgency }}">{{ urgency | upper }}</span>
+          </td>
+        </tr>
+      </table>
+    </div>
+
+    <div class="btn-row">
+      <a href="{{ yes_url }}" class="btn-yes">✅ Yes, I Can Donate</a>
+      <a href="{{ no_url }}"  class="btn-no">❌ Cannot Donate</a>
+    </div>
+    <p class="expire">⏳ This link expires in {{ expires_hours }} hours</p>
+
+    <p style="font-size:12px;color:#aaa;margin-top:24px;line-height:1.6;">
+      If the buttons don't work, copy these links:<br>
+      Yes: {{ yes_url }}<br>
+      No: {{ no_url }}
+    </p>
+  </div>
+  <div class="footer">
+    Blood Donation Portal · Andhra Pradesh · You are receiving this because you registered as a donor.
+  </div>
+</div>
+</body>
+</html>

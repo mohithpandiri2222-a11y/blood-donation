@@ -1,76 +1,74 @@
 {% extends "base.html" %}
-{% block title %}Public Blood Inventory{% endblock %}
+{% block title %}Blood Bank Inventory{% endblock %}
+
+{% block head_extra %}
+<style>
+  .shortage-banner {
+    background: #C0392B; color: #fff;
+    padding: 12px 20px; border-radius: 10px;
+    font-weight: 600; font-size: 14px;
+    margin-bottom: 1rem; display: none;
+    align-items: center; gap: 10px;
+  }
+  .refresh-badge {
+    font-size: 11px; color: #aaa;
+    margin-left: auto;
+  }
+  .unit-pill {
+    display: inline-block;
+    padding: 3px 12px; border-radius: 20px;
+    font-weight: 700; font-size: 13px;
+  }
+  .unit-zero   { background: #FCEBEB; color: #A32D2D; }
+  .unit-low    { background: #FAEEDA; color: #854F0B; }
+  .unit-ok     { background: #EAF3DE; color: #3B6D11; }
+</style>
+{% endblock %}
 
 {% block content %}
-<div class="container my-5">
-  <div class="d-flex align-items-center gap-3 mb-4">
-    <div style="font-size:2.5rem;">🏥</div>
-    <div>
-      <h1 class="mb-0 fw-bold">Blood Availability</h1>
-      <p class="text-muted mb-0">Real-time inventory from registered blood banks in Visakhapatnam</p>
-    </div>
+<div class="container py-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <h4 style="font-weight:600;">🏥 Blood Bank Inventory</h4>
+    <span class="refresh-badge" id="refresh-timer">Auto-refreshes every 30s</span>
   </div>
 
-  <!-- Summary Cards -->
-  <div class="row g-3 mb-5">
-    {% for row in inventory %}
-    <div class="col-6 col-md-3">
-      <div class="card text-center p-3 fade-in" style="border-top:4px solid var(--red-600);">
-        <div class="bg-badge mx-auto mb-2" style="width:3rem;height:3rem;line-height:3rem;font-size:1rem;">{{ row.blood_group }}</div>
-        <div class="fw-bold fs-3 {% if row.total == 0 %}text-secondary{% elif row.total < 5 %}text-warning{% else %}text-danger{% endif %}">
-          {{ row.total or 0 }}
-        </div>
-        <div class="text-muted small">units</div>
-        {% if row.total == 0 %}
-          <span class="badge bg-secondary mt-2">Out of Stock</span>
-        {% elif row.total < 5 %}
-          <span class="badge bg-warning text-dark mt-2">Low Stock</span>
-        {% else %}
-          <span class="badge bg-success mt-2">Available</span>
-        {% endif %}
-      </div>
-    </div>
-    {% endfor %}
+  <!-- Shortage banner (shown by JS if needed) -->
+  <div class="shortage-banner" id="shortage-banner">
+    ⚠️ <span id="shortage-msg">Critical shortage detected!</span>
   </div>
 
-  <!-- Detailed Table -->
-  <div class="card fade-in">
-    <div class="card-header-red py-3">
-      <i class="bi bi-table me-2"></i>Detailed Inventory by Blood Bank
-    </div>
+  <!-- Inventory table -->
+  <div class="card border-0 shadow-sm">
     <div class="card-body p-0">
-      <div class="table-responsive">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light">
+      <div style="overflow-x:auto;">
+        <table class="table table-hover mb-0" id="inventory-table">
+          <thead style="background:#f8f9fa;">
             <tr>
+              <th style="padding:14px 16px;">Blood Bank</th>
               <th>Blood Group</th>
-              <th>Blood Bank</th>
               <th>Units Available</th>
               <th>Status</th>
+              <th>Last Updated</th>
             </tr>
           </thead>
-          <tbody>
+          <tbody id="inventory-body">
             {% for row in inventory %}
-            <tr>
-              <td><span class="bg-badge">{{ row.blood_group }}</span></td>
+            <tr id="inv-row-{{ row.id }}">
+              <td style="padding:12px 16px;font-weight:500;">{{ row.bank_name }}</td>
+              <td><strong style="color:#C0392B;">{{ row.blood_group }}</strong></td>
+              <td>{{ row.units }}</td>
               <td>
-                <i class="bi bi-hospital text-danger me-1"></i>
-                {{ row.bank_name }}
-              </td>
-              <td class="fw-bold fs-5">{{ row.total }}</td>
-              <td>
-                {% if row.total == 0 %}
-                  <span class="badge bg-danger">Out of Stock</span>
-                {% elif row.total < 5 %}
-                  <span class="badge bg-warning text-dark">⚠️ Low Stock</span>
+                {% if row.units == 0 %}
+                  <span class="unit-pill unit-zero">Critical — 0 units</span>
+                {% elif row.units <= 5 %}
+                  <span class="unit-pill unit-low">Low — {{ row.units }} units</span>
                 {% else %}
-                  <span class="badge bg-success">✅ Available</span>
+                  <span class="unit-pill unit-ok">Available</span>
                 {% endif %}
               </td>
-            </tr>
-            {% else %}
-            <tr>
-              <td colspan="4" class="text-center text-muted py-4">No inventory data available.</td>
+              <td style="font-size:12px;color:#aaa;">
+                {{ row.last_updated.strftime('%d %b %Y, %I:%M %p') }}
+              </td>
             </tr>
             {% endfor %}
           </tbody>
@@ -78,18 +76,71 @@
       </div>
     </div>
   </div>
-
-  <!-- CTA -->
-  <div class="alert alert-danger mt-4 d-flex align-items-center gap-3">
-    <span style="font-size:2rem;">🆘</span>
-    <div>
-      <strong>Emergency?</strong> Call <a href="tel:108" class="alert-link">108</a> immediately.
-      {% if not session.get('user_id') %}
-      Or <a href="{{ url_for('register') }}" class="alert-link">register as a seeker</a> to find compatible donors near you.
-      {% else %}
-      <a href="{{ url_for('seeker_request') if session.role=='seeker' else url_for('dashboard') }}" class="alert-link">Request blood →</a>
-      {% endif %}
-    </div>
-  </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+let secondsAgo = 0;
+
+function updateInventory() {
+  fetch('/api/inventory')
+    .then(r => r.json())
+    .then(data => {
+      secondsAgo = 0;
+      const tbody = document.getElementById('inventory-body');
+      if (!data.length) return;
+
+      let hasCritical = false;
+      let criticalGroups = [];
+
+      tbody.innerHTML = data.map(row => {
+        let pillClass, pillText;
+        if (row.units === 0) {
+          pillClass = 'unit-zero';
+          pillText  = 'Critical — 0 units';
+          hasCritical = true;
+          criticalGroups.push(row.blood_group);
+        } else if (row.units <= 5) {
+          pillClass = 'unit-low';
+          pillText  = `Low — ${row.units} units`;
+        } else {
+          pillClass = 'unit-ok';
+          pillText  = 'Available';
+        }
+        return `
+          <tr>
+            <td style="padding:12px 16px;font-weight:500;">${row.bank_name}</td>
+            <td><strong style="color:#C0392B;">${row.blood_group}</strong></td>
+            <td>${row.units}</td>
+            <td><span class="unit-pill ${pillClass}">${pillText}</span></td>
+            <td style="font-size:12px;color:#aaa;">${row.last_updated}</td>
+          </tr>`;
+      }).join('');
+
+      // Show/hide shortage banner
+      const banner = document.getElementById('shortage-banner');
+      if (hasCritical) {
+        document.getElementById('shortage-msg').textContent =
+          `⚠️ Critical shortage: ${criticalGroups.join(', ')} — Please donate now!`;
+        banner.style.display = 'flex';
+      } else {
+        banner.style.display = 'none';
+      }
+    })
+    .catch(console.error);
+}
+
+// Countdown timer
+setInterval(() => {
+  secondsAgo++;
+  document.getElementById('refresh-timer').textContent =
+    secondsAgo < 5
+      ? 'Just refreshed'
+      : `Last refreshed ${secondsAgo}s ago`;
+}, 1000);
+
+// Auto-refresh every 30s
+setInterval(updateInventory, 30000);
+</script>
 {% endblock %}

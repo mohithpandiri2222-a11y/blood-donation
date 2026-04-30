@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="container py-5" style="max-width:500px;text-align:center;">
+  <div style="font-size:4rem;">
+    {{ "✅" if status == "accepted" else "❌" }}
+  </div>
+  <h2 style="margin:1rem 0 0.5rem;
+             color:{{ '#27ae60' if status == 'accepted' else '#C0392B' }};">
+    {{ "Thank You!" if status == "accepted" else "Response Recorded" }}
+  </h2>
+  <p style="color:#666;font-size:1rem;line-height:1.7;">{{ message }}</p>
+  {% if status == 'accepted' %}
+  <div style="background:#d5f5e3;border-radius:12px;padding:1rem;
+              margin:1.5rem 0;font-size:0.9rem;color:#1e8449;">
+    🏥 Please contact the hospital to confirm donation time.<br>
+    💧 Stay hydrated and eat a light meal before donating.
+  </div>
+  {% endif %}
+  <a href="{{ url_for('index') }}"
+     style="background:#C0392B;color:#fff;padding:0.7rem 2rem;
+            border-radius:10px;text-decoration:none;font-weight:600;">
+    Back to Home
+  </a>
+</div>
+{% endblock %}
