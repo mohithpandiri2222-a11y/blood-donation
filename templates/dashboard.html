@@ -7,34 +7,38 @@
   <!-- ─ Role banner ─ -->
   <div class="d-flex align-items-center gap-3 mb-4">
     <div style="font-size:2.5rem;">
-      {% if role=='donor' %}❤️{% elif role=='seeker' %}🔍{% else %}🏥{% endif %}
+      {% if current_user.role=='donor' %}❤️{% elif current_user.role=='seeker' %}🔍{% else %}🏥{% endif %}
     </div>
     <div>
-      <h2 class="mb-0 fw-bold">{{ session.name }}'s Dashboard</h2>
-      <span class="badge bg-danger">{{ role | title }}</span>
+      <h2 class="mb-0 fw-bold">{{ current_user.name }}'s Dashboard</h2>
+      <span class="badge bg-danger">{{ current_user.role | title }}</span>
     </div>
   </div>
 
   <!-- ══════════════════════════ DONOR ══════════════════════════ -->
-  {% if role == 'donor' %}
+  {% if current_user.role == 'donor' %}
   <div class="row g-4">
     <!-- Quick stats -->
     <div class="col-md-4">
       <div class="card h-100">
         <div class="card-header-red py-3"><i class="bi bi-person-lines-fill me-2"></i>Your Profile</div>
         <div class="card-body">
-          {% set u = data.user %}
           <p class="mb-1"><strong>Blood Group:</strong>
-            <span class="bg-badge ms-2">{{ u.blood_group or '?' }}</span></p>
-          <p class="mb-1"><strong>Phone:</strong> {{ u.phone or '–' }}</p>
+            <span class="bg-badge ms-2">{{ current_user.blood_group or '?' }}</span></p>
+          <p class="mb-1"><strong>Phone:</strong> {{ current_user.phone or '–' }}</p>
           <p class="mb-1"><strong>Last Donation:</strong>
-            {{ u.last_donation_date or 'Never' }}</p>
+            {{ current_user.last_donation_date or 'Never' }}</p>
           <p class="mb-0"><strong>Location:</strong>
-            {% if u.lat and u.lng %}{{ '%.4f'|format(u.lat) }}, {{ '%.4f'|format(u.lng) }}{% else %}Not set{% endif %}</p>
+            {% if current_user.lat and current_user.lng %}{{ '%.4f'|format(current_user.lat) }}, {{ '%.4f'|format(current_user.lng) }}{% else %}Not set{% endif %}</p>
           <hr>
-          <a href="{{ url_for('donor_profile') }}" class="btn btn-outline-danger btn-sm w-100">
-            <i class="bi bi-pencil"></i> Edit Profile
-          </a>
+          <div class="d-flex gap-2">
+            <a href="{{ url_for('donor_profile') }}" class="btn btn-outline-danger btn-sm flex-grow-1">
+              <i class="bi bi-pencil"></i> Edit Profile
+            </a>
+            <a href="{{ url_for('health_card.my_health_card') }}" class="btn btn-danger btn-sm flex-grow-1">
+              🩸 Health Card
+            </a>
+          </div>
         </div>
       </div>
     </div>
@@ -47,11 +51,15 @@
           <form method="POST" action="{{ url_for('log_donation') }}">
             <div class="mb-3">
               <label class="form-label fw-semibold">Units Donated</label>
-              <input type="number" name="units" value="1" min="1" max="5" class="form-control">
+              <input type="number" name="units" value="1" step="0.5" min="0.5" max="5" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Hospital / Place</label>
+              <input type="text" name="place" class="form-control" placeholder="City Hospital, Vizag" required>
             </div>
             <div class="mb-3">
               <label class="form-label fw-semibold">Notes (optional)</label>
-              <textarea name="notes" class="form-control" rows="2" placeholder="Hospital name, etc."></textarea>
+              <textarea name="notes" class="form-control" rows="1" placeholder="Felt good..."></textarea>
             </div>
             <button type="submit" class="btn btn-danger w-100">
               <i class="bi bi-droplet-fill me-1"></i> Record Today's Donation
@@ -70,7 +78,7 @@
           <ul class="list-group list-group-flush">
             {% for d in data.donations %}
             <li class="list-group-item d-flex justify-content-between align-items-center px-0">
-              <span class="text-muted small">{{ d.donation_date }}</span>
+              <span class="text-muted small">{{ d.donated_on.strftime('%Y-%m-%d') }}</span>
               <span class="badge bg-danger">{{ d.units }} unit(s)</span>
             </li>
             {% endfor %}
@@ -94,16 +102,16 @@
                 <tr><th>Seeker</th><th>Blood Group</th><th>Units</th><th>Urgency</th><th>Distance</th><th>Matched At</th></tr>
               </thead>
               <tbody>
-                {% for m in data.matches %}
+                {% for match, request, seeker_name in data.matches %}
                 <tr>
-                  <td>{{ m.seeker_name }}</td>
-                  <td><span class="bg-badge">{{ m.blood_group }}</span></td>
-                  <td>{{ m.units }}</td>
+                  <td>{{ seeker_name }}</td>
+                  <td><span class="bg-badge">{{ request.blood_group }}</span></td>
+                  <td>{{ request.units }}</td>
                   <td>
-                    <span class="badge rounded-pill urgency-{{ m.urgency }}">{{ m.urgency | upper }}</span>
+                    <span class="badge rounded-pill urgency-{{ request.urgency }}">{{ request.urgency | upper }}</span>
                   </td>
-                  <td>{{ m.distance_km }} km</td>
-                  <td class="text-muted small">{{ m.matched_at[:16] }}</td>
+                  <td>{{ match.distance_km }} km</td>
+                  <td class="text-muted small">{{ match.matched_at.strftime('%Y-%m-%d %H:%M') }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
@@ -117,7 +125,7 @@
   {% endif %}
 
   <!-- ══════════════════════════ SEEKER ══════════════════════════ -->
-  {% if role == 'seeker' %}
+  {% if current_user.role == 'seeker' %}
   <div class="row g-4">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-3">
@@ -138,7 +146,7 @@
                 <span class="badge rounded-pill urgency-{{ r.urgency }}">{{ r.urgency | upper }}</span>
               </div>
               <h6 class="fw-bold">{{ r.units }} unit(s) needed</h6>
-              <p class="text-muted small mb-2">Requested: {{ r.created_at[:16] }}</p>
+              <p class="text-muted small mb-2">Requested: {{ r.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
               <span class="badge bg-{% if r.status=='open' %}warning text-dark{% elif r.status=='fulfilled' %}success{% else %}secondary{% endif %}">
                 {{ r.status | upper }}
               </span>
@@ -164,7 +172,7 @@
   {% endif %}
 
   <!-- ══════════════════════════ BLOOD BANK ══════════════════════════ -->
-  {% if role == 'blood_bank' %}
+  {% if current_user.role == 'blood_bank' %}
   <div class="row g-4">
     <div class="col-md-5">
       <div class="card">

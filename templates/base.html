@@ -164,28 +164,32 @@
       <ul class="navbar-nav me-auto ms-3">
         <li class="nav-item"><a class="nav-link" href="{{ url_for('index') }}"><i class="bi bi-house"></i> Home</a></li>
         <li class="nav-item"><a class="nav-link" href="{{ url_for('public_inventory') }}"><i class="bi bi-droplet-half"></i> Inventory</a></li>
-        {% if session.get('user_id') %}
+        {% if current_user.is_authenticated %}
         <li class="nav-item"><a class="nav-link" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2"></i> Dashboard</a></li>
-          {% if session.get('role') == 'seeker' %}
+          {% if current_user.role == 'seeker' %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('seeker_request') }}"><i class="bi bi-plus-circle"></i> New Request</a></li>
-          {% elif session.get('role') == 'blood_bank' %}
+          {% elif current_user.role == 'blood_bank' %}
           <li class="nav-item"><a class="nav-link" href="{{ url_for('bloodbank_inventory') }}"><i class="bi bi-clipboard-data"></i> Inventory</a></li>
           <li class="nav-item"><a class="nav-link" href="{{ url_for('bloodbank_requests') }}"><i class="bi bi-list-ul"></i> All Requests</a></li>
-          {% elif session.get('role') == 'donor' %}
-          <li class="nav-item"><a class="nav-link" href="{{ url_for('donor_profile') }}"><i class="bi bi-person-circle"></i> Profile</a></li>
           {% endif %}
         {% endif %}
       </ul>
       <ul class="navbar-nav ms-auto align-items-center gap-2">
-        {% if session.get('user_id') %}
-          <li class="nav-item d-flex align-items-center gap-2">
-            <span class="badge-role">{{ session.role | upper }}</span>
-            <span class="text-white-50">{{ session.name }}</span>
-          </li>
-          <li class="nav-item">
-            <a class="btn btn-sm btn-outline-light" href="{{ url_for('logout') }}">
-              <i class="bi bi-box-arrow-right"></i> Logout
+        {% if current_user.is_authenticated %}
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle d-flex align-items-center gap-2" href="#" role="button" data-bs-toggle="dropdown">
+              <span class="badge-role">{{ current_user.role | upper }}</span>
+              <span class="text-white">{{ current_user.name }}</span>
             </a>
+            <ul class="dropdown-menu dropdown-menu-end shadow">
+              <li><a class="dropdown-item" href="{{ url_for('dashboard') }}"><i class="bi bi-speedometer2 me-2"></i>Dashboard</a></li>
+              {% if current_user.role == 'donor' %}
+                <li><a class="dropdown-item" href="{{ url_for('donor_profile') }}"><i class="bi bi-person-circle me-2"></i>My Profile</a></li>
+                <li><a class="dropdown-item" href="{{ url_for('health_card.my_health_card') }}">🩸 My Health Card</a></li>
+              {% endif %}
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="{{ url_for('logout') }}"><i class="bi bi-box-arrow-right me-2"></i>Logout</a></li>
+            </ul>
           </li>
         {% else %}
           <li class="nav-item"><a class="btn btn-sm btn-outline-light me-2" href="{{ url_for('login') }}">Login</a></li>

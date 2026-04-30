@@ -1,0 +1,61 @@
+{% extends "base.html" %}
+{% block title %}Certificate — {{ donor.name }}{% endblock %}
+{% block content %}
+<div class="container py-5" style="max-width:750px;">
+  <div style="border: 8px double #C0392B; border-radius: 20px;
+              padding: 3rem; text-align: center; background: #fffdf9;
+              box-shadow: 0 8px 40px rgba(192,57,43,0.12);">
+
+    <div style="font-size:3rem;">🩸</div>
+    <div style="font-size:0.85rem;letter-spacing:4px;color:#999;
+                text-transform:uppercase;margin:0.5rem 0;">
+      Blood Donation Portal
+    </div>
+
+    <h1 style="font-size:2rem;color:#C0392B;margin:1.5rem 0 0.5rem;font-weight:700;">
+      Certificate of Appreciation
+    </h1>
+    <p style="color:#888;font-size:0.9rem;">This is proudly presented to</p>
+
+    <div style="font-size:2.2rem;font-weight:700;color:#222;
+                border-bottom:2px solid #C0392B;display:inline-block;
+                padding-bottom:0.25rem;margin:0.75rem 0;">
+      {{ donor.name }}
+    </div>
+
+    <p style="font-size:1.05rem;color:#555;margin:1.5rem auto;max-width:500px;line-height:1.8;">
+      For completing <strong style="color:#C0392B;">{{ donation_count }} blood donations</strong>,
+      donating approximately <strong>{{ total_litres }} litres</strong> of blood
+      and potentially saving up to
+      <strong style="color:#C0392B;">{{ lives }} lives</strong>.
+    </p>
+
+    <div style="background:#fadbd8;border-radius:12px;
+                padding:1rem 2rem;display:inline-block;margin:1rem 0;">
+      <div style="font-size:2rem;font-weight:700;color:#C0392B;">
+        {{ donor.blood_group }}
+      </div>
+      <div style="font-size:0.78rem;color:#922b21;">Blood Group</div>
+    </div>
+
+    <div style="color:#aaa;font-size:0.82rem;margin-top:2rem;">
+      Issued on {{ issue_date }} &nbsp;·&nbsp; Blood Donation Management Portal
+    </div>
+
+    <div class="mt-4 d-print-none">
+      <button onclick="window.print()"
+              style="background:#C0392B;color:#fff;border:none;
+                     border-radius:10px;padding:0.6rem 1.6rem;
+                     font-weight:600;cursor:pointer;margin-right:8px;">
+        🖨️ Print Certificate
+      </button>
+      <a href="{{ url_for('health_card.download_pdf') }}"
+         style="background:#fff;color:#C0392B;border:2px solid #C0392B;
+                border-radius:10px;padding:0.55rem 1.6rem;
+                font-weight:600;text-decoration:none;">
+        📄 Download PDF
+      </a>
+    </div>
+  </div>
+</div>
+{% endblock %}
