@@ -355,6 +355,59 @@ def log_donation():
     return redirect(url_for('dashboard'))
 
 # ---------------------------------------------------------------------------
+# Demo Data Initialization Endpoint (for Railway deployment)
+# ---------------------------------------------------------------------------
+@app.route('/init-demo')
+def init_demo():
+    try:
+        from add_demo_donors import add_demo_data
+        from add_demo_request import add_demo_request
+        from fix_inventory import fix_inventory
+        
+        # We don't want to call `app.app_context()` inside these functions if we are already in one
+        # So I will just rewrite a simplified quick demo setup here to avoid circular imports / context issues
+        
+        # Quick admin
+        if not User.query.filter_by(email='admin@bloodconnect.com').first():
+            admin = User(name='Portal Admin', email='admin@bloodconnect.com', password=generate_password_hash('admin123'), role='admin', phone='9876543210')
+            db.session.add(admin)
+
+        # Quick blood bank
+        bank = User.query.filter_by(email='vizag_bank@hospital.com').first()
+        if not bank:
+            bank = User(name='Vizag Central Blood Bank', email='vizag_bank@hospital.com', password=generate_password_hash('bank123'), role='blood_bank', phone='0891-223344', lat=17.7231, lng=83.3012)
+            db.session.add(bank)
+            db.session.flush()
+
+        # Add Inventory
+        groups = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
+        for bg in groups:
+            existing = Inventory.query.filter_by(blood_bank_id=bank.id, blood_group=bg).first()
+            if not existing:
+                db.session.add(Inventory(blood_bank_id=bank.id, blood_group=bg, units=50))
+            else:
+                existing.units = 50
+
+        # Donors
+        donors = [
+            ('Ravi Kumar', 'ravi@gmail.com', 'O+', 17.6868, 83.2185, '2024-01-10'),
+            ('Sita Devi', 'sita@gmail.com', 'B+', 17.7000, 83.2500, None),
+            ('Arjun Singh', 'arjun@gmail.com', 'A-', 17.6500, 83.2000, '2023-11-15')
+        ]
+        for name, email, bg, lat, lng, last_don in donors:
+            if not User.query.filter_by(email=email).first():
+                db.session.add(User(name=name, email=email, password=generate_password_hash('donor123'), role='donor', phone='9988776655', blood_group=bg, lat=lat, lng=lng, last_donation_date=last_don, wallet_balance=100.0))
+
+        # Seeker
+        if not User.query.filter_by(email='seeker@gmail.com').first():
+            db.session.add(User(name='Rajesh Seeker', email='seeker@gmail.com', password=generate_password_hash('seeker123'), role='seeker', phone='8877665544', lat=17.6880, lng=83.2190))
+
+        db.session.commit()
+        return "Demo data populated successfully! Go to <a href='/'>Home</a> or <a href='/inventory'>Inventory</a>"
+    except Exception as e:
+        return f"An error occurred: {str(e)}"
+
+# ---------------------------------------------------------------------------
 # Init
 # ---------------------------------------------------------------------------
 def init_db():
