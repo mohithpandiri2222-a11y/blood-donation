@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+
+{% block content %}
+<div class="container d-flex justify-content-center align-items-center" style="min-height:80vh;">
+  <div class="card shadow-lg" style="width:100%;max-width:440px;">
+    <div class="card-header-red text-center py-4">
+      <span style="font-size:2.5rem;">🩸</span>
+      <h4 class="mt-2 mb-0">Welcome Back</h4>
+      <p class="mb-0 opacity-75 small">Sign in to BloodConnect</p>
+    </div>
+    <div class="card-body p-4">
+      <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <div class="mb-3">
+          <label class="form-label fw-semibold" for="email">Email Address</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-envelope text-danger"></i></span>
+            <input type="email" id="email" name="email" class="form-control" placeholder="you@example.com" required>
+          </div>
+        </div>
+        <div class="mb-4">
+          <label class="form-label fw-semibold" for="password">Password</label>
+          <div class="input-group">
+            <span class="input-group-text"><i class="bi bi-lock text-danger"></i></span>
+            <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">
+          <i class="bi bi-box-arrow-in-right me-1"></i> Sign In
+        </button>
+      </form>
+
+      <hr class="my-3">
+
+      <!-- Demo Credentials -->
+      <div class="alert alert-light border small mb-0">
+        <p class="fw-bold mb-1 text-danger"><i class="bi bi-info-circle"></i> Demo Accounts</p>
+        <table class="table table-sm mb-0">
+          <tbody>
+            <tr><td>Donor</td><td><code>arjun@example.com</code></td><td><code>password123</code></td></tr>
+            <tr><td>Seeker</td><td><code>seeker@example.com</code></td><td><code>seeker123</code></td></tr>
+            <tr><td>Blood Bank</td><td><code>vizagbb@example.com</code></td><td><code>bloodbank123</code></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <p class="text-center mt-3 mb-0 small">
+        Don't have an account? <a href="{{ url_for('register') }}" class="text-danger fw-bold">Register here</a>
+      </p>
+    </div>
+  </div>
+</div>
+{% endblock %}

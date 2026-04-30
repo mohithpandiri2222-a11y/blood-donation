@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+{% block title %}Donor Profile{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header-red py-3">
+          <i class="bi bi-person-circle me-2"></i>Edit Donor Profile
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('donor_profile') }}">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Full Name</label>
+                <input type="text" class="form-control" value="{{ user.name }}" disabled>
+                <small class="text-muted">Name cannot be changed. Contact support.</small>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold">Email</label>
+                <input type="email" class="form-control" value="{{ user.email }}" disabled>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="phone">Phone</label>
+                <div class="input-group">
+                  <span class="input-group-text"><i class="bi bi-telephone text-danger"></i></span>
+                  <input type="tel" id="phone" name="phone" class="form-control" value="{{ user.phone or '' }}">
+                </div>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="blood_group">Blood Group</label>
+                <select id="blood_group" name="blood_group" class="form-select">
+                  {% for bg in blood_groups %}
+                  <option value="{{ bg }}" {% if user.blood_group == bg %}selected{% endif %}>{{ bg }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="lat">Latitude</label>
+                <input type="number" step="any" id="lat" name="lat" class="form-control"
+                  value="{{ user.lat or '' }}" placeholder="e.g. 17.6868">
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="lng">Longitude</label>
+                <input type="number" step="any" id="lng" name="lng" class="form-control"
+                  value="{{ user.lng or '' }}" placeholder="e.g. 83.2185">
+              </div>
+              <div class="col-12">
+                <button type="button" id="detectLoc" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-geo-alt-fill"></i> Detect My Current Location
+                </button>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="last_donation_date">Last Donation Date</label>
+                <input type="date" id="last_donation_date" name="last_donation_date" class="form-control"
+                  value="{{ user.last_donation_date or '' }}">
+              </div>
+            </div>
+
+            <!-- Eligibility hint -->
+            {% if user.last_donation_date %}
+            {% set ld = user.last_donation_date %}
+            <div class="alert alert-info mt-3 small">
+              <i class="bi bi-calendar-check me-1"></i>
+              Last donation: <strong>{{ ld }}</strong>.
+              You are eligible to donate again after 90 days.
+            </div>
+            {% endif %}
+
+            <div class="mt-4 d-flex gap-2">
+              <button type="submit" class="btn btn-danger px-4 fw-bold">
+                <i class="bi bi-save me-1"></i> Save Changes
+              </button>
+              <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Cancel</a>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.getElementById('detectLoc').addEventListener('click', () => {
+    if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      document.getElementById('lat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('lng').value = pos.coords.longitude.toFixed(6);
+    }, () => alert('Unable to retrieve location.'));
+  });
+</script>
+{% endblock %}

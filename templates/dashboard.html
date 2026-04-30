@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+  <!-- ─ Role banner ─ -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <div style="font-size:2.5rem;">
+      {% if role=='donor' %}❤️{% elif role=='seeker' %}🔍{% else %}🏥{% endif %}
+    </div>
+    <div>
+      <h2 class="mb-0 fw-bold">{{ session.name }}'s Dashboard</h2>
+      <span class="badge bg-danger">{{ role | title }}</span>
+    </div>
+  </div>
+
+  <!-- ══════════════════════════ DONOR ══════════════════════════ -->
+  {% if role == 'donor' %}
+  <div class="row g-4">
+    <!-- Quick stats -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header-red py-3"><i class="bi bi-person-lines-fill me-2"></i>Your Profile</div>
+        <div class="card-body">
+          {% set u = data.user %}
+          <p class="mb-1"><strong>Blood Group:</strong>
+            <span class="bg-badge ms-2">{{ u.blood_group or '?' }}</span></p>
+          <p class="mb-1"><strong>Phone:</strong> {{ u.phone or '–' }}</p>
+          <p class="mb-1"><strong>Last Donation:</strong>
+            {{ u.last_donation_date or 'Never' }}</p>
+          <p class="mb-0"><strong>Location:</strong>
+            {% if u.lat and u.lng %}{{ '%.4f'|format(u.lat) }}, {{ '%.4f'|format(u.lng) }}{% else %}Not set{% endif %}</p>
+          <hr>
+          <a href="{{ url_for('donor_profile') }}" class="btn btn-outline-danger btn-sm w-100">
+            <i class="bi bi-pencil"></i> Edit Profile
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Log Donation -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header-red py-3"><i class="bi bi-plus-circle me-2"></i>Log Donation</div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('log_donation') }}">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Units Donated</label>
+              <input type="number" name="units" value="1" min="1" max="5" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Notes (optional)</label>
+              <textarea name="notes" class="form-control" rows="2" placeholder="Hospital name, etc."></textarea>
+            </div>
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-droplet-fill me-1"></i> Record Today's Donation
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent donations -->
+    <div class="col-md-4">
+      <div class="card h-100">
+        <div class="card-header-red py-3"><i class="bi bi-clock-history me-2"></i>Donation History</div>
+        <div class="card-body">
+          {% if data.donations %}
+          <ul class="list-group list-group-flush">
+            {% for d in data.donations %}
+            <li class="list-group-item d-flex justify-content-between align-items-center px-0">
+              <span class="text-muted small">{{ d.donation_date }}</span>
+              <span class="badge bg-danger">{{ d.units }} unit(s)</span>
+            </li>
+            {% endfor %}
+          </ul>
+          {% else %}
+          <p class="text-muted small mb-0">No donations logged yet.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Matched Requests -->
+    {% if data.matches %}
+    <div class="col-12">
+      <div class="card">
+        <div class="card-header-red py-3"><i class="bi bi-bell-fill me-2"></i>Blood Requests Matched to You</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr><th>Seeker</th><th>Blood Group</th><th>Units</th><th>Urgency</th><th>Distance</th><th>Matched At</th></tr>
+              </thead>
+              <tbody>
+                {% for m in data.matches %}
+                <tr>
+                  <td>{{ m.seeker_name }}</td>
+                  <td><span class="bg-badge">{{ m.blood_group }}</span></td>
+                  <td>{{ m.units }}</td>
+                  <td>
+                    <span class="badge rounded-pill urgency-{{ m.urgency }}">{{ m.urgency | upper }}</span>
+                  </td>
+                  <td>{{ m.distance_km }} km</td>
+                  <td class="text-muted small">{{ m.matched_at[:16] }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- ══════════════════════════ SEEKER ══════════════════════════ -->
+  {% if role == 'seeker' %}
+  <div class="row g-4">
+    <div class="col-12">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-list-ul text-danger me-2"></i>Your Blood Requests</h5>
+        <a href="{{ url_for('seeker_request') }}" class="btn btn-danger">
+          <i class="bi bi-plus-lg"></i> New Request
+        </a>
+      </div>
+
+      {% if data.requests %}
+      <div class="row g-3">
+        {% for r in data.requests %}
+        <div class="col-md-6 col-lg-4">
+          <div class="card h-100">
+            <div class="card-body">
+              <div class="d-flex justify-content-between mb-2">
+                <span class="bg-badge">{{ r.blood_group }}</span>
+                <span class="badge rounded-pill urgency-{{ r.urgency }}">{{ r.urgency | upper }}</span>
+              </div>
+              <h6 class="fw-bold">{{ r.units }} unit(s) needed</h6>
+              <p class="text-muted small mb-2">Requested: {{ r.created_at[:16] }}</p>
+              <span class="badge bg-{% if r.status=='open' %}warning text-dark{% elif r.status=='fulfilled' %}success{% else %}secondary{% endif %}">
+                {{ r.status | upper }}
+              </span>
+              <div class="mt-3">
+                <a href="{{ url_for('seeker_matches', req_id=r.id) }}" class="btn btn-outline-danger btn-sm w-100">
+                  <i class="bi bi-geo-alt"></i> View Matched Donors
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="alert alert-info">
+        <i class="bi bi-info-circle me-2"></i>
+        You haven't raised any blood requests yet.
+        <a href="{{ url_for('seeker_request') }}" class="alert-link">Create one now →</a>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ══════════════════════════ BLOOD BANK ══════════════════════════ -->
+  {% if role == 'blood_bank' %}
+  <div class="row g-4">
+    <div class="col-md-5">
+      <div class="card">
+        <div class="card-header-red py-3"><i class="bi bi-plus-circle me-2"></i>Update Inventory</div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('bloodbank_inventory') }}">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Blood Group</label>
+              <select name="blood_group" class="form-select">
+                {% for bg in blood_groups %}
+                <option value="{{ bg }}">{{ bg }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Units Available</label>
+              <input type="number" name="units" class="form-control" min="0" placeholder="0" required>
+            </div>
+            <button type="submit" class="btn btn-danger w-100">
+              <i class="bi bi-save me-1"></i> Update Inventory
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-7">
+      <div class="card">
+        <div class="card-header-red py-3"><i class="bi bi-droplet-half me-2"></i>Current Inventory</div>
+        <div class="card-body p-0">
+          <div class="table-responsive">
+            <table class="table table-hover mb-0">
+              <thead class="table-light">
+                <tr><th>Blood Group</th><th>Units Available</th><th>Status</th></tr>
+              </thead>
+              <tbody>
+                {% for item in data.inventory %}
+                <tr>
+                  <td><span class="bg-badge">{{ item.blood_group }}</span></td>
+                  <td class="fw-bold">{{ item.units }}</td>
+                  <td>
+                    {% if item.units == 0 %}
+                      <span class="badge bg-danger">Out of Stock</span>
+                    {% elif item.units < 5 %}
+                      <span class="badge bg-warning text-dark">Low</span>
+                    {% else %}
+                      <span class="badge bg-success">Available</span>
+                    {% endif %}
+                  </td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12">
+      <a href="{{ url_for('bloodbank_requests') }}" class="btn btn-outline-danger">
+        <i class="bi bi-list-ul"></i> View All Blood Requests
+      </a>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

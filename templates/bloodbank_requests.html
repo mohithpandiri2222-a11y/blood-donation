@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}All Blood Requests{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <span style="font-size:2.5rem;">📋</span>
+    <div>
+      <h2 class="mb-0 fw-bold">All Blood Requests</h2>
+      <p class="text-muted mb-0">Platform-wide requests from all seekers</p>
+    </div>
+  </div>
+
+  <!-- Filter strip -->
+  <div class="d-flex gap-2 flex-wrap mb-4" id="filterBtns">
+    <button class="btn btn-danger btn-sm filter-btn active" data-filter="all">All</button>
+    <button class="btn btn-outline-danger btn-sm filter-btn" data-filter="open">Open</button>
+    <button class="btn btn-outline-success btn-sm filter-btn" data-filter="fulfilled">Fulfilled</button>
+    <button class="btn btn-outline-secondary btn-sm filter-btn" data-filter="closed">Closed</button>
+    <button class="btn btn-outline-warning btn-sm filter-btn" data-filter="critical">🆘 Critical</button>
+  </div>
+
+  {% if requests %}
+  <div class="row g-3" id="requestsGrid">
+    {% for r in requests %}
+    <div class="col-md-6 col-xl-4 req-card"
+         data-status="{{ r.status }}"
+         data-urgency="{{ r.urgency }}">
+      <div class="card h-100" style="border-top:4px solid
+        {% if r.urgency=='critical' %}var(--red-600)
+        {% elif r.urgency=='high'   %}#f97316
+        {% elif r.urgency=='medium' %}#eab308
+        {% else %}#22c55e{% endif %};">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-start mb-2">
+            <span class="bg-badge">{{ r.blood_group }}</span>
+            <span class="badge rounded-pill urgency-{{ r.urgency }}">{{ r.urgency | upper }}</span>
+          </div>
+          <h6 class="fw-bold mb-1">{{ r.units }} unit(s) required</h6>
+          <p class="text-muted small mb-1">
+            <i class="bi bi-person me-1"></i> {{ r.seeker_name }}
+            {% if r.seeker_phone %}
+            &nbsp;|&nbsp; <a href="tel:{{ r.seeker_phone }}" class="text-muted">
+              <i class="bi bi-telephone me-1"></i>{{ r.seeker_phone }}
+            </a>
+            {% endif %}
+          </p>
+          <p class="text-muted small mb-2">
+            <i class="bi bi-clock me-1"></i> {{ r.created_at[:16] }}
+          </p>
+          <div class="d-flex justify-content-between align-items-center">
+            <span class="badge bg-{% if r.status=='open' %}warning text-dark{% elif r.status=='fulfilled' %}success{% else %}secondary{% endif %}">
+              {{ r.status | upper }}
+            </span>
+            <span class="text-muted small">Request #{{ r.id }}</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="alert alert-info">
+    <i class="bi bi-info-circle me-2"></i>No blood requests in the system yet.
+  </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active','btn-danger'));
+      btn.classList.add('active', 'btn-danger');
+
+      const f = btn.dataset.filter;
+      document.querySelectorAll('.req-card').forEach(card => {
+        const show = f === 'all'
+          || card.dataset.status === f
+          || card.dataset.urgency === f;
+        card.style.display = show ? '' : 'none';
+      });
+    });
+  });
+</script>
+{% endblock %}

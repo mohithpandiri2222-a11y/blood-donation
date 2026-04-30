@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}Request Blood{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+  <div class="row justify-content-center">
+    <div class="col-lg-7">
+      <div class="card shadow-sm">
+        <div class="card-header-red py-3">
+          <i class="bi bi-search-heart me-2"></i>Raise a Blood Request
+        </div>
+        <div class="card-body p-4">
+          <form method="POST" action="{{ url_for('seeker_request') }}" id="reqForm">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="blood_group">Blood Group Required <span class="text-danger">*</span></label>
+                <select id="blood_group" name="blood_group" class="form-select" required>
+                  {% for bg in blood_groups %}
+                  <option value="{{ bg }}">{{ bg }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold" for="units">Units Needed <span class="text-danger">*</span></label>
+                <input type="number" id="units" name="units" class="form-control" min="1" value="1" required>
+              </div>
+              <div class="col-md-3">
+                <label class="form-label fw-semibold" for="urgency">Urgency <span class="text-danger">*</span></label>
+                <select id="urgency" name="urgency" class="form-select" required>
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high" selected>High</option>
+                  <option value="critical">🆘 Critical</option>
+                </select>
+              </div>
+
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="rlat">Your Latitude <span class="text-danger">*</span></label>
+                <input type="number" step="any" id="rlat" name="lat" class="form-control"
+                  value="17.6868" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label fw-semibold" for="rlng">Your Longitude <span class="text-danger">*</span></label>
+                <input type="number" step="any" id="rlng" name="lng" class="form-control"
+                  value="83.2185" required>
+              </div>
+
+              <div class="col-12 d-flex gap-2">
+                <button type="button" id="detectLocBtn" class="btn btn-outline-danger btn-sm">
+                  <i class="bi bi-geo-alt-fill"></i> Detect Location
+                </button>
+                <button type="button" id="previewBtn" class="btn btn-outline-secondary btn-sm">
+                  <i class="bi bi-eye"></i> Preview Donors
+                </button>
+              </div>
+            </div>
+
+            <!-- Compatibility hint -->
+            <div id="compatHint" class="alert alert-info mt-3 small d-none">
+              <i class="bi bi-info-circle me-1"></i>
+              <span id="compatText"></span>
+            </div>
+
+            <div class="mt-4">
+              <button type="submit" class="btn btn-danger w-100 py-2 fw-bold">
+                <i class="bi bi-send me-1"></i> Submit Request & Find Donors
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+      <!-- Live preview map -->
+      <div class="card mt-4" id="mapCard" style="display:none!important;">
+        <div class="card-header-red py-2"><i class="bi bi-map me-2"></i>Nearby Compatible Donors Preview</div>
+        <div class="card-body p-2">
+          <div id="preview-map" style="height:300px;border-radius:.5rem;"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+  const compatMap = {
+    'O-':  'O-',
+    'O+':  'O-, O+',
+    'A-':  'O-, A-',
+    'A+':  'O-, O+, A-, A+',
+    'B-':  'O-, B-',
+    'B+':  'O-, O+, B-, B+',
+    'AB-': 'O-, A-, B-, AB-',
+    'AB+': 'All blood groups',
+  };
+
+  const bgSel = document.getElementById('blood_group');
+  const hint  = document.getElementById('compatHint');
+  const hintT = document.getElementById('compatText');
+
+  function updateHint() {
+    const bg = bgSel.value;
+    hintT.textContent = `Compatible donors for ${bg}: ${compatMap[bg] || '–'}`;
+    hint.classList.remove('d-none');
+  }
+  bgSel.addEventListener('change', updateHint);
+  updateHint();
+
+  // Detect location
+  document.getElementById('detectLocBtn').addEventListener('click', () => {
+    if (!navigator.geolocation) { alert('Geolocation not supported.'); return; }
+    navigator.geolocation.getCurrentPosition(pos => {
+      document.getElementById('rlat').value = pos.coords.latitude.toFixed(6);
+      document.getElementById('rlng').value = pos.coords.longitude.toFixed(6);
+    }, () => alert('Unable to retrieve location.'));
+  });
+
+  // Preview donors
+  let previewMap = null;
+  document.getElementById('previewBtn').addEventListener('click', () => {
+    const bg  = bgSel.value;
+    const lat = parseFloat(document.getElementById('rlat').value) || 17.6868;
+    const lng = parseFloat(document.getElementById('rlng').value) || 83.2185;
+
+    const mc = document.getElementById('mapCard');
+    mc.style.removeProperty('display');
+
+    fetch(`/api/find_matches?blood_group=${bg}&lat=${lat}&lng=${lng}`)
+      .then(r => r.json())
+      .then(donors => {
+        if (!previewMap) {
+          previewMap = L.map('preview-map').setView([lat, lng], 13);
+          L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution:'© OpenStreetMap'
+          }).addTo(previewMap);
+        } else {
+          previewMap.setView([lat, lng], 13);
+          previewMap.eachLayer(l => { if (l instanceof L.Marker || l instanceof L.Circle) l.remove(); });
+        }
+
+        // Seeker pin
+        L.marker([lat, lng], {
+          icon: L.divIcon({ className:'', html:'<div style="background:#dc2626;color:white;border-radius:50%;width:32px;height:32px;line-height:32px;text-align:center;font-size:18px;">🔍</div>', iconSize:[32,32] })
+        }).addTo(previewMap).bindPopup('Your Location').openPopup();
+
+        // Radius circle
+        L.circle([lat, lng], { radius:10000, color:'#dc2626', fillOpacity:0.05 }).addTo(previewMap);
+
+        donors.forEach(d => {
+          L.marker([d.lat, d.lng], {
+            icon: L.divIcon({ className:'', html:'<div style="background:#16a34a;color:white;border-radius:50%;width:32px;height:32px;line-height:32px;text-align:center;font-size:14px;font-weight:bold;">'+d.blood_group+'</div>', iconSize:[32,32] })
+          }).addTo(previewMap)
+            .bindPopup(`<b>${d.name}</b><br>Blood: ${d.blood_group}<br>Distance: ${d.distance.toFixed(1)} km`);
+        });
+
+        if (!donors.length) alert('No compatible donors found within 10 km.');
+      })
+      .catch(() => alert('Error fetching donors.'));
+  });
+</script>
+{% endblock %}

@@ -1,0 +1,148 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- ═══ HERO ═══ -->
+<section class="hero text-center">
+  <div class="container">
+    <div class="mb-3">
+      <span style="font-size:4rem;">🩸</span>
+    </div>
+    <h1 class="mb-3">BloodConnect <span style="font-weight:300">Visakhapatnam</span></h1>
+    <p class="lead mb-4">Connecting donors, seekers, and blood banks to save lives – faster than ever.</p>
+    <div class="d-flex justify-content-center gap-3 flex-wrap">
+      {% if not session.get('user_id') %}
+      <a href="{{ url_for('register') }}" class="btn btn-light btn-lg fw-bold text-danger px-4">
+        <i class="bi bi-person-plus"></i> Join as Donor
+      </a>
+      <a href="{{ url_for('register') }}" class="btn btn-outline-light btn-lg px-4">
+        <i class="bi bi-search-heart"></i> Request Blood
+      </a>
+      {% else %}
+      <a href="{{ url_for('dashboard') }}" class="btn btn-light btn-lg fw-bold text-danger px-4">
+        <i class="bi bi-speedometer2"></i> Go to Dashboard
+      </a>
+      {% endif %}
+      <a href="{{ url_for('public_inventory') }}" class="btn btn-outline-light btn-lg px-4">
+        <i class="bi bi-droplet-half"></i> Check Availability
+      </a>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ STATS STRIP ═══ -->
+<section class="container my-5">
+  <div class="row g-4 text-center fade-in">
+    <div class="col-6 col-md-3">
+      <div class="stat-box">
+        <div class="stat-number">10+</div>
+        <div class="stat-label">Registered Donors</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-box">
+        <div class="stat-number">8</div>
+        <div class="stat-label">Blood Groups Covered</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-box">
+        <div class="stat-number">10km</div>
+        <div class="stat-label">Smart Match Radius</div>
+      </div>
+    </div>
+    <div class="col-6 col-md-3">
+      <div class="stat-box">
+        <div class="stat-number">24/7</div>
+        <div class="stat-label">Portal Availability</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ BLOOD INVENTORY SUMMARY ═══ -->
+<section class="container mb-5">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2 class="fw-700 fs-3"><i class="bi bi-droplet-fill text-danger me-2"></i>Live Blood Inventory</h2>
+    <a href="{{ url_for('public_inventory') }}" class="btn btn-outline-danger btn-sm">View All →</a>
+  </div>
+  <div class="row g-3 fade-in">
+    {% for row in inventory %}
+    <div class="col-6 col-sm-4 col-md-3">
+      <div class="card text-center p-3">
+        <div class="bg-badge mx-auto mb-2">{{ row.blood_group }}</div>
+        <div class="fw-bold fs-4 text-danger">{{ row.total }}</div>
+        <div class="text-muted small">units available</div>
+      </div>
+    </div>
+    {% else %}
+    <div class="col-12"><p class="text-muted">No inventory data yet.</p></div>
+    {% endfor %}
+  </div>
+</section>
+
+<!-- ═══ HOW IT WORKS ═══ -->
+<section class="py-5" style="background:var(--red-50);">
+  <div class="container">
+    <h2 class="text-center fw-bold mb-5">How BloodConnect Works</h2>
+    <div class="row g-4 text-center fade-in">
+      <div class="col-md-4">
+        <div class="card p-4 h-100">
+          <div style="font-size:3rem;">📋</div>
+          <h5 class="fw-bold mt-3 text-danger">1. Register</h5>
+          <p class="text-muted">Sign up as a Donor, Seeker, or Blood Bank with your details and location.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-4 h-100">
+          <div style="font-size:3rem;">🔍</div>
+          <h5 class="fw-bold mt-3 text-danger">2. Match</h5>
+          <p class="text-muted">Our engine finds compatible donors within 10 km using the haversine formula.</p>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card p-4 h-100">
+          <div style="font-size:3rem;">💉</div>
+          <h5 class="fw-bold mt-3 text-danger">3. Donate &amp; Save</h5>
+          <p class="text-muted">Donors are notified and can respond to help those in need immediately.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══ COMPATIBILITY TABLE ═══ -->
+<section class="container my-5 fade-in">
+  <h2 class="fw-bold mb-4"><i class="bi bi-table text-danger me-2"></i>Blood Compatibility Reference</h2>
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle table-hover">
+      <thead style="background:var(--red-700); color:white;">
+        <tr>
+          <th>Blood Type</th>
+          <th>Can Donate To</th>
+          <th>Can Receive From</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% set compat = {
+          'O-':  {'donate':'All blood types','receive':'O-'},
+          'O+':  {'donate':'O+, A+, B+, AB+','receive':'O-, O+'},
+          'A-':  {'donate':'A-, A+, AB-, AB+','receive':'O-, A-'},
+          'A+':  {'donate':'A+, AB+','receive':'O-, O+, A-, A+'},
+          'B-':  {'donate':'B-, B+, AB-, AB+','receive':'O-, B-'},
+          'B+':  {'donate':'B+, AB+','receive':'O-, O+, B-, B+'},
+          'AB-': {'donate':'AB-, AB+','receive':'O-, A-, B-, AB-'},
+          'AB+': {'donate':'AB+ only','receive':'All blood types'},
+        } %}
+        {% for bg, info in compat.items() %}
+        <tr>
+          <td><span class="bg-badge">{{ bg }}</span></td>
+          <td class="text-start ps-3">{{ info.donate }}</td>
+          <td class="text-start ps-3">{{ info.receive }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</section>
+{% endblock %}
