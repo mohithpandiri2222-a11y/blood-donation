@@ -1,0 +1,176 @@
+{% extends "base.html" %}
+{% block title %}Secure Payment{% endblock %}
+
+{% block extra_head %}
+<style>
+  .payment-card { max-width:480px; margin:0 auto; }
+  .amount-display { font-size:2.5rem; font-weight:800; color:white; }
+  .pay-btn {
+    background:linear-gradient(135deg,#528FF0,#3366CC); border:none;
+    padding:14px; font-size:1.1rem; font-weight:700; border-radius:8px;
+    color:white; width:100%; cursor:pointer; transition:opacity .2s;
+  }
+  .pay-btn:hover { opacity:.9; }
+  .fail-btn {
+    background:transparent; border:1px solid #dc2626; padding:10px;
+    font-size:.9rem; font-weight:600; border-radius:8px; color:#dc2626;
+    width:100%; cursor:pointer; margin-top:8px;
+  }
+  .fail-btn:hover { background:#dc2626; color:white; }
+  #spinner-overlay {
+    display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+    z-index:9999; align-items:center; justify-content:center;
+    flex-direction:column; gap:16px; color:white; font-size:1.1rem; font-weight:600;
+  }
+  .spin-ring {
+    width:3rem; height:3rem; border:.35em solid rgba(255,255,255,.3);
+    border-top-color:white; border-radius:50%;
+    animation:spin .7s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+</style>
+{% endblock %}
+
+{% block content %}
+<div id="spinner-overlay"><div class="spin-ring"></div>Processing payment…</div>
+
+<div class="container my-5">
+  <div class="payment-card">
+    <!-- Steps -->
+    <div class="d-flex align-items-center gap-2 mb-4">
+      <span class="badge bg-success rounded-pill px-3">1 Cart</span>
+      <div style="flex:1;height:2px;background:#16a34a;"></div>
+      <span class="badge bg-success rounded-pill px-3">2 Checkout</span>
+      <div style="flex:1;height:2px;background:#dc2626;"></div>
+      <span class="badge bg-danger rounded-pill px-3">3 Payment</span>
+      <div style="flex:1;height:2px;background:#e5e7eb;"></div>
+      <span class="badge bg-secondary rounded-pill px-3">4 Done</span>
+    </div>
+
+    <div class="card shadow-lg border-0" style="border-radius:1.2rem;overflow:hidden;">
+      <!-- Header -->
+      <div style="background:linear-gradient(135deg,#7f1d1d,#b91c1c);padding:24px 28px;color:white;">
+        <div class="d-flex justify-content-between align-items-center">
+          <div>
+            <div style="font-size:.8rem;opacity:.8;text-transform:uppercase;letter-spacing:1px;">BloodConnect Portal</div>
+            <h4 class="fw-bold mb-0 mt-1">Secure Payment</h4>
+          </div>
+          <div style="background:white;color:#528FF0;padding:4px 12px;border-radius:6px;font-weight:800;">
+            <i class="bi bi-shield-lock-fill me-1"></i>Razorpay
+          </div>
+        </div>
+        <div class="mt-4">
+          <div style="font-size:.85rem;opacity:.7;">Amount Due</div>
+          <div class="amount-display">₹{{ "%.2f"|format(order.net_payable) }}</div>
+        </div>
+      </div>
+
+      <!-- Body -->
+      <div class="card-body p-4">
+        <div class="mb-4 p-3 rounded" style="background:#fff5f5;border-left:3px solid #dc2626;">
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted small">Order #</span><span class="fw-semibold small">#{{ order.id }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted small">Hospital</span><span class="fw-semibold small">{{ order.hospital_name }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted small">Processing Fee</span><span class="small">₹{{ "%.2f"|format(order.processing_fee) }}</span>
+          </div>
+          <div class="d-flex justify-content-between mb-1">
+            <span class="text-muted small">GST (18%)</span><span class="small">₹{{ "%.2f"|format(order.gst_amount) }}</span>
+          </div>
+          {% if order.wallet_deducted > 0 %}
+          <div class="d-flex justify-content-between mb-1 text-success">
+            <span class="small">Wallet Credit</span><span class="small fw-semibold">−₹{{ "%.2f"|format(order.wallet_deducted) }}</span>
+          </div>
+          {% endif %}
+          <hr class="my-2">
+          <div class="d-flex justify-content-between">
+            <span class="fw-bold">Net Payable</span>
+            <span class="fw-bold text-danger">₹{{ "%.2f"|format(order.net_payable) }}</span>
+          </div>
+        </div>
+
+        <div class="mb-4">
+          <div class="fw-semibold small text-muted mb-2">BLOOD UNITS</div>
+          <div class="d-flex gap-2 flex-wrap">
+            {% for item in items %}
+            <span class="badge bg-danger px-3 py-2">{{ item.blood_group }} × {{ item.units }}</span>
+            {% endfor %}
+          </div>
+        </div>
+
+        <button id="pay-now-btn" class="pay-btn" onclick="simulatePayment('success')">
+          <i class="bi bi-credit-card me-2"></i>Pay ₹{{ "%.2f"|format(order.net_payable) }} Now
+        </button>
+        <button class="fail-btn" onclick="simulatePayment('failure')">
+          Simulate Payment Failure (Test Mode)
+        </button>
+        <div class="text-center mt-3">
+          <small class="text-muted"><i class="bi bi-lock-fill me-1 text-success"></i>256-bit SSL · Mock test mode</small>
+        </div>
+      </div>
+    </div>
+    <div class="text-center mt-3">
+      <a href="{{ url_for('cart.view_cart') }}" class="text-muted small"><i class="bi bi-arrow-left me-1"></i>Back to Cart</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script>
+const ORDER_DB_ID = {{ order.id }};
+const MOCK_ORDER_ID = "{{ mock_order_id }}";
+const VERIFY_URL = "{{ url_for('payment.verify') }}";
+
+function showSpinner(on) {
+  document.getElementById('spinner-overlay').style.display = on ? 'flex' : 'none';
+}
+
+async function simulatePayment(type) {
+  showSpinner(true);
+  document.getElementById('pay-now-btn').disabled = true;
+  await new Promise(r => setTimeout(r, type === 'success' ? 1800 : 1200));
+  const mockPayId = 'pay_MOCK_' + Math.random().toString(36).substr(2,12).toUpperCase();
+  try {
+    const resp = await fetch(VERIFY_URL, {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        order_db_id: ORDER_DB_ID,
+        razorpay_order_id: MOCK_ORDER_ID,
+        razorpay_payment_id: mockPayId,
+        razorpay_signature: '',
+        simulate: type
+      })
+    });
+    const data = await resp.json();
+    showSpinner(false);
+    if (data.success) {
+      document.querySelector('.payment-card').innerHTML = `
+        <div class="text-center py-5">
+          <div style="font-size:5rem;">✅</div>
+          <h3 class="fw-bold text-success mt-3">Payment Successful!</h3>
+          <p class="text-muted">ID: <code>${mockPayId}</code></p>
+          <p class="text-muted">Redirecting…</p>
+        </div>`;
+      setTimeout(() => window.location.href = data.redirect, 1500);
+    } else {
+      document.querySelector('.payment-card').innerHTML = `
+        <div class="text-center py-5">
+          <div style="font-size:5rem;">❌</div>
+          <h3 class="fw-bold text-danger mt-3">Payment Failed</h3>
+          <p class="text-muted">${data.message || 'Transaction declined.'}</p>
+          <a href="{{ url_for('cart.view_cart') }}" class="btn btn-outline-danger mt-3">Return to Cart</a>
+        </div>`;
+    }
+  } catch(e) {
+    showSpinner(false);
+    alert('Network error. Please try again.');
+    document.getElementById('pay-now-btn').disabled = false;
+  }
+}
+</script>
+{% endblock %}

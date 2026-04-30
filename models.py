@@ -14,6 +14,7 @@ class User(UserMixin, db.Model):
     lat         = db.Column(db.Float)
     lng         = db.Column(db.Float)
     last_donation_date = db.Column(db.String(10)) # YYYY-MM-DD
+    wallet_balance = db.Column(db.Float, default=0.0)  # wallet credits in ₹
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Donation(db.Model):
@@ -72,3 +73,22 @@ class Alert(db.Model):
     triggered_at  = db.Column(db.DateTime, default=datetime.utcnow)
     message       = db.Column(db.Text)
     resolved      = db.Column(db.Boolean, default=False)
+
+class Order(db.Model):
+    """Tracks blood unit checkout orders with payment & QR."""
+    __tablename__ = 'orders'
+    id              = db.Column(db.Integer, primary_key=True)
+    user_id         = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=False)
+    items_json      = db.Column(db.Text, nullable=False)        # JSON list of {blood_group, units}
+    processing_fee  = db.Column(db.Float, default=0.0)          # ₹50 per unit
+    gst_amount      = db.Column(db.Float, default=0.0)          # 18% GST
+    wallet_deducted = db.Column(db.Float, default=0.0)          # amount offset by wallet
+    net_payable     = db.Column(db.Float, default=0.0)          # final amount charged
+    payment_status  = db.Column(db.String(20), default='pending')  # pending, paid, failed
+    payment_id      = db.Column(db.String(100))                 # mock/Razorpay payment ID
+    qr_token        = db.Column(db.String(200), unique=True)    # signed JWT for QR
+    hospital_name   = db.Column(db.String(200))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    fulfilled_at    = db.Column(db.DateTime)
+
+    user = db.relationship('User', backref=db.backref('orders_rel', lazy=True))

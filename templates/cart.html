@@ -1,0 +1,184 @@
+{% extends "base.html" %}
+{% block title %}My Cart{% endblock %}
+
+{% block content %}
+<div class="container my-5">
+
+  <!-- ── Page Header ── -->
+  <div class="d-flex align-items-center gap-3 mb-4">
+    <span style="font-size:2.2rem;">🛒</span>
+    <div>
+      <h2 class="mb-0 fw-bold">Blood Unit Cart</h2>
+      <small class="text-muted">Processing fee ₹50/unit · GST 18% · Wallet credits applied automatically</small>
+    </div>
+  </div>
+
+  {% if not cart %}
+  <!-- Empty Cart -->
+  <div class="text-center py-5">
+    <div style="font-size:5rem; opacity:.3;">🩸</div>
+    <h4 class="text-muted mt-3">Your cart is empty</h4>
+    <a href="{{ url_for('public_inventory') }}" class="btn btn-danger mt-3">
+      <i class="bi bi-droplet-half me-2"></i>Browse Blood Inventory
+    </a>
+  </div>
+
+  {% else %}
+
+  <div class="row g-4">
+    <!-- ── Cart Items ── -->
+    <div class="col-lg-7">
+      <div class="card">
+        <div class="card-header-red py-3">
+          <i class="bi bi-cart3 me-2"></i>Cart Items ({{ cart | length }} blood group{{ 's' if cart|length > 1 else '' }})
+        </div>
+        <div class="card-body p-0">
+          {% for item in cart %}
+          <div class="d-flex align-items-center gap-3 p-3 border-bottom">
+            <div class="bg-badge flex-shrink-0">{{ item.blood_group }}</div>
+            <div class="flex-grow-1">
+              <div class="fw-bold">{{ item.blood_group }} Blood</div>
+              <small class="text-muted">
+                Processing: ₹{{ (item.units * 50) | int }} · GST: ₹{{ ((item.units * 50) * 0.18) | round(2) }}
+              </small>
+              {% set avail = inventory.get(item.blood_group, 0) %}
+              {% if avail < item.units %}
+              <div><span class="badge bg-warning text-dark">⚠ Only {{ avail }} units available</span></div>
+              {% endif %}
+            </div>
+            <!-- Quantity Controls -->
+            <form method="POST" action="{{ url_for('cart.update_cart') }}" class="d-flex align-items-center gap-2">
+              <input type="hidden" name="blood_group" value="{{ item.blood_group }}">
+              <button type="button" class="btn btn-sm btn-outline-secondary px-2"
+                onclick="let inp=this.nextElementSibling; inp.value=Math.max(0,parseInt(inp.value)-1); this.closest('form').submit();">−</button>
+              <input type="number" name="units" value="{{ item.units }}" min="0" max="20"
+                class="form-control form-control-sm text-center" style="width:60px;"
+                onchange="this.closest('form').submit()">
+              <button type="button" class="btn btn-sm btn-outline-secondary px-2"
+                onclick="let inp=this.previousElementSibling.previousElementSibling; inp.value=parseInt(inp.previousElementSibling.value||1)+1; this.closest('form').submit();">+</button>
+            </form>
+            <!-- Remove -->
+            <form method="POST" action="{{ url_for('cart.remove_from_cart') }}">
+              <input type="hidden" name="blood_group" value="{{ item.blood_group }}">
+              <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove">
+                <i class="bi bi-trash3"></i>
+              </button>
+            </form>
+          </div>
+          {% endfor %}
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center bg-white">
+          <a href="{{ url_for('public_inventory') }}" class="btn btn-outline-secondary btn-sm">
+            <i class="bi bi-arrow-left me-1"></i>Continue Shopping
+          </a>
+          <form method="POST" action="{{ url_for('cart.clear_cart') }}">
+            <button type="submit" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-trash me-1"></i>Clear Cart
+            </button>
+          </form>
+        </div>
+      </div>
+
+      <!-- ── Add More Blood Units ── -->
+      <div class="card mt-4">
+        <div class="card-header-red py-3"><i class="bi bi-plus-circle me-2"></i>Add Blood Units</div>
+        <div class="card-body">
+          <form method="POST" action="{{ url_for('cart.add_to_cart') }}" class="row g-3">
+            <div class="col-sm-6">
+              <label class="form-label fw-semibold">Blood Group</label>
+              <select name="blood_group" class="form-select" id="add-blood-group">
+                {% for bg in blood_groups %}
+                <option value="{{ bg }}">{{ bg }}</option>
+                {% endfor %}
+              </select>
+            </div>
+            <div class="col-sm-4">
+              <label class="form-label fw-semibold">Units</label>
+              <input type="number" name="units" class="form-control" value="1" min="1" max="20" id="add-units">
+            </div>
+            <div class="col-sm-2 d-flex align-items-end">
+              <button type="submit" class="btn btn-danger w-100">Add</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── Order Summary ── -->
+    <div class="col-lg-5">
+      <div class="card sticky-top" style="top:80px;">
+        <div class="card-header-red py-3"><i class="bi bi-receipt me-2"></i>Order Summary</div>
+        <div class="card-body">
+
+          <!-- Breakdown Table -->
+          <table class="table table-sm mb-3">
+            <tbody>
+              <tr>
+                <td class="text-muted">Total Units</td>
+                <td class="text-end fw-semibold">{{ totals.total_units }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">Processing Fee (₹50/unit)</td>
+                <td class="text-end">₹{{ "%.2f"|format(totals.processing_fee) }}</td>
+              </tr>
+              <tr>
+                <td class="text-muted">GST @ 18%</td>
+                <td class="text-end">₹{{ "%.2f"|format(totals.gst_amount) }}</td>
+              </tr>
+              <tr class="border-top">
+                <td class="fw-semibold">Subtotal</td>
+                <td class="text-end fw-semibold">₹{{ "%.2f"|format(totals.subtotal) }}</td>
+              </tr>
+              {% if totals.wallet_deducted > 0 %}
+              <tr class="text-success">
+                <td><i class="bi bi-wallet2 me-1"></i>Wallet Credit</td>
+                <td class="text-end">−₹{{ "%.2f"|format(totals.wallet_deducted) }}</td>
+              </tr>
+              {% endif %}
+              <tr class="table-danger">
+                <td class="fw-bold fs-5">Net Payable</td>
+                <td class="text-end fw-bold fs-5 text-danger">₹{{ "%.2f"|format(totals.net_payable) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Wallet Balance Badge -->
+          <div class="alert alert-light border d-flex align-items-center gap-2 py-2 mb-3">
+            <i class="bi bi-wallet2 text-danger fs-5"></i>
+            <div>
+              <div class="fw-semibold small">Wallet Balance</div>
+              <div class="text-danger fw-bold">₹{{ "%.2f"|format(totals.wallet_balance) }}</div>
+            </div>
+            {% if totals.wallet_deducted > 0 %}
+            <span class="badge bg-success ms-auto">₹{{ "%.2f"|format(totals.wallet_deducted) }} applied</span>
+            {% endif %}
+          </div>
+
+          <!-- Checkout Form -->
+          <form method="POST" action="{{ url_for('cart.checkout') }}">
+            <div class="mb-3">
+              <label class="form-label fw-semibold">Hospital / Pickup Location</label>
+              <input type="text" name="hospital" class="form-control"
+                     placeholder="e.g. King George Hospital, Vizag" required>
+            </div>
+            <button type="submit" id="checkout-btn" class="btn btn-danger w-100 py-2 fw-bold fs-5">
+              {% if totals.net_payable <= 0 %}
+                <i class="bi bi-check-circle me-2"></i>Place Order (Wallet)
+              {% else %}
+                <i class="bi bi-credit-card me-2"></i>Proceed to Payment · ₹{{ "%.2f"|format(totals.net_payable) }}
+              {% endif %}
+            </button>
+          </form>
+
+          <div class="mt-3 text-center">
+            <small class="text-muted">
+              <i class="bi bi-shield-lock me-1"></i>Secure checkout · Powered by BloodConnect
+            </small>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

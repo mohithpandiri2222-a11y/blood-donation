@@ -1,0 +1,15 @@
+{% extends "base.html" %}
+{% block title %}Payment Failed{% endblock %}
+{% block content %}
+<div class="container my-5 text-center" style="max-width:480px;">
+  <div style="font-size:5rem;">❌</div>
+  <h2 class="fw-bold text-danger mt-3">Payment Failed</h2>
+  <p class="text-muted">Your transaction was declined or cancelled.</p>
+  <div class="d-flex gap-3 justify-content-center mt-4">
+    <a href="{{ url_for('cart.view_cart') }}" class="btn btn-danger">
+      <i class="bi bi-arrow-left me-2"></i>Back to Cart
+    </a>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+  </div>
+</div>
+{% endblock %}

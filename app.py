@@ -8,9 +8,13 @@ from flask_login import LoginManager, login_user, logout_user, login_required, c
 from werkzeug.security import generate_password_hash, check_password_hash
 
 from extensions import db, mail
-from models import User, Donation, BloodRequest, Match, Inventory, Alert
+from models import User, Donation, BloodRequest, Match, Inventory, Alert, Order
 from routes.health_card import health_card_bp
 from routes.lang import lang_bp, get_t
+from routes.cart import cart_bp
+from routes.payment import payment_bp
+from routes.qr import qr_bp
+from routes.predictor import predictor_bp
 from notifications import notifications_bp, send_match_emails
 from scheduler import init_scheduler
 from compatibility import can_donate, get_compatible_donors
@@ -39,6 +43,14 @@ login_manager.login_view = 'login'
 app.register_blueprint(health_card_bp)
 app.register_blueprint(lang_bp)
 app.register_blueprint(notifications_bp)
+app.register_blueprint(cart_bp)
+app.register_blueprint(payment_bp)
+app.register_blueprint(qr_bp)
+app.register_blueprint(predictor_bp)
+
+# Jinja2 custom filter
+import json as _json
+app.jinja_env.filters['fromjson'] = _json.loads
 
 @login_manager.user_loader
 def load_user(user_id):

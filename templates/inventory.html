@@ -49,6 +49,9 @@
               <th>Units Available</th>
               <th>Status</th>
               <th>Last Updated</th>
+              {% if current_user.is_authenticated %}
+              <th>Reserve</th>
+              {% endif %}
             </tr>
           </thead>
           <tbody id="inventory-body">
@@ -69,6 +72,22 @@
               <td style="font-size:12px;color:#aaa;">
                 {{ row.last_updated.strftime('%d %b %Y, %I:%M %p') }}
               </td>
+              {% if current_user.is_authenticated %}
+              <td>
+                {% if row.units > 0 %}
+                <form method="POST" action="{{ url_for('cart.add_to_cart') }}" class="d-flex gap-1">
+                  <input type="hidden" name="blood_group" value="{{ row.blood_group }}">
+                  <input type="number" name="units" value="1" min="1" max="{{ row.units }}"
+                         class="form-control form-control-sm" style="width:60px;">
+                  <button type="submit" class="btn btn-sm btn-danger">
+                    <i class="bi bi-cart-plus"></i>
+                  </button>
+                </form>
+                {% else %}
+                <span class="badge bg-secondary">Unavailable</span>
+                {% endif %}
+              </td>
+              {% endif %}
             </tr>
             {% endfor %}
           </tbody>
@@ -76,6 +95,15 @@
       </div>
     </div>
   </div>
+
+  {% if current_user.is_authenticated %}
+  <div class="d-flex justify-content-between align-items-center mt-4">
+    <a href="{{ url_for('cart.view_cart') }}" class="btn btn-danger">
+      <i class="bi bi-cart3 me-2"></i>View Cart
+    </a>
+    <small class="text-muted">Use the Reserve buttons above to add blood units to your cart</small>
+  </div>
+  {% endif %}
 </div>
 {% endblock %}
 

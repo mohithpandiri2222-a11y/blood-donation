@@ -32,6 +32,29 @@
     </div>
   </div>
 
+  <!-- ── Live Status Bar ── -->
+  <div class="d-flex gap-3 flex-wrap mb-3" id="live-status-bar">
+    <div class="card px-4 py-2 border-0" style="background:#dcfce7;">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-success fs-6" id="accepted-count">0</span>
+        <span class="text-success fw-semibold small">Donors Accepted</span>
+        <span id="live-dot" style="width:8px;height:8px;border-radius:50%;background:#16a34a;animation:pulse 1.4s infinite;display:inline-block;"></span>
+      </div>
+    </div>
+    <div class="card px-4 py-2 border-0" style="background:#fef9c3;">
+      <div class="d-flex align-items-center gap-2">
+        <span class="badge bg-warning text-dark fs-6" id="pending-count">{{ matches|length }}</span>
+        <span class="text-warning fw-semibold small">Pending Response</span>
+      </div>
+    </div>
+    <div class="card px-4 py-2 border-0" style="background:#fff5f5;">
+      <div class="d-flex align-items-center gap-2">
+        <i class="bi bi-broadcast text-danger"></i>
+        <span class="text-danger fw-semibold small">Live · updating every 3s</span>
+      </div>
+    </div>
+  </div>
+
   <div class="row g-4">
     <!-- Donor Cards -->
     <div class="col-lg-5">
@@ -81,6 +104,31 @@
       {% endif %}
     </div>
 
+    <!-- ── Wait-Time Predictor ── -->
+    <div class="col-12 col-lg-5" id="predictor-widget">
+      <div class="card border-0" style="background:linear-gradient(135deg,#1e1b4b,#312e81);color:white;">
+        <div class="card-body p-4">
+          <div class="d-flex align-items-center gap-2 mb-3">
+            <span style="font-size:1.8rem;">⏱</span>
+            <div>
+              <h6 class="mb-0 fw-bold">Wait-Time Predictor</h6>
+              <small style="opacity:.7;">AI-estimated donor arrival</small>
+            </div>
+            <span class="badge ms-auto" id="pred-confidence" style="background:rgba(255,255,255,.2);">calculating…</span>
+          </div>
+          <div class="text-center my-3">
+            <div id="pred-minutes" style="font-size:3rem;font-weight:800;line-height:1;">—</div>
+            <div style="font-size:.85rem;opacity:.7;">minutes estimated</div>
+          </div>
+          <div id="pred-status" class="text-center small" style="opacity:.8;">Fetching prediction…</div>
+          <div class="mt-3" id="pred-factors" style="font-size:.8rem;opacity:.7;"></div>
+          <div class="text-center mt-3">
+            <small style="opacity:.5;">Refreshes every 10s</small>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Map -->
     <div class="col-lg-7">
       <div class="card sticky-top" style="top:80px;">
@@ -104,15 +152,70 @@
 
 {% block extra_scripts %}
 <script>
-  // Real-time SSE updates
+  // ── Real-time SSE – Live DOM Updates ──────────────────────────────────────
   const evtSource = new EventSource("{{ url_for('stream', request_id=req.id) }}");
   evtSource.onmessage = function(event) {
     const data = JSON.parse(event.data);
-    if (data.donors.length > 0) {
-      console.log("Real-time match data:", data);
-      // Optional: Update the UI donor list here
+
+    // Update accepted / pending badges
+    document.getElementById('accepted-count').textContent = data.accepted;
+    document.getElementById('pending-count').textContent  = data.pending;
+
+    // If newly accepted donors arrived, update their status badge in donor cards
+    if (data.donors && data.donors.length > 0) {
+      const cards = document.querySelectorAll('.donor-card');
+      cards.forEach(card => {
+        const cardName = card.querySelector('h6') ? card.querySelector('h6').textContent.trim() : '';
+        data.donors.forEach(d => {
+          if (cardName === d.name) {
+            const badge = card.querySelector('.badge');
+            if (badge) {
+              badge.className = 'badge bg-success';
+              badge.textContent = 'ACCEPTED';
+            }
+          }
+        });
+      });
     }
+
+    // Flash the live dot green pulse
+    const dot = document.getElementById('live-dot');
+    if (dot) { dot.style.background = data.accepted > 0 ? '#16a34a' : '#f59e0b'; }
   };
+
+  evtSource.onerror = function() {
+    const dot = document.getElementById('live-dot');
+    if (dot) dot.style.background = '#dc2626';
+  };
+
+  // ── Wait-Time Predictor Polling ──────────────────────────────────────────
+  async function fetchPrediction() {
+    try {
+      const resp = await fetch('/predict/{{ req.id }}');
+      if (!resp.ok) return;
+      const d = await resp.json();
+
+      document.getElementById('pred-minutes').textContent =
+        d.estimated_minutes !== null ? d.estimated_minutes : '—';
+      document.getElementById('pred-status').textContent = d.status || '';
+
+      const conf = document.getElementById('pred-confidence');
+      const colors = { high:'#16a34a', medium:'#d97706', low:'#dc2626' };
+      conf.textContent = (d.confidence || 'low').toUpperCase();
+      conf.style.background = colors[d.confidence] || 'rgba(255,255,255,.2)';
+
+      if (d.factors && Object.keys(d.factors).length) {
+        const fKeys = Object.entries(d.factors)
+          .map(([k,v]) => `${k.replace(/_/g,' ')}: <strong>${v}</strong>`)
+          .join(' &nbsp;·&nbsp; ');
+        document.getElementById('pred-factors').innerHTML = fKeys;
+      }
+    } catch(e) {
+      document.getElementById('pred-status').textContent = 'Predictor unavailable';
+    }
+  }
+  fetchPrediction();
+  setInterval(fetchPrediction, 10000);
 
   // Build donors array from template data
   const donors = [

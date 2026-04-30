@@ -8,3 +8,7 @@ twilio
 pytest
 gunicorn
 werkzeug
+qrcode[pil]
+PyJWT
+python-dotenv
+Pillow
